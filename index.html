@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Most Wanted Board</title>
+    <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Oswald:wght@400;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0a0a;
+            min-height: 100vh;
+            padding: 2rem;
+            font-family: 'Oswald', sans-serif;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Film grain overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23noise)'/%3E%3C/svg%3E");
+            opacity: 0.05;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        /* Vignette effect */
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.8) 100%);
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        .board {
+            max-width: 1800px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            position: relative;
+            padding: 2rem 0;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #8b0000, #ff0000, #8b0000, transparent);
+            transform: translateY(-50%);
+            z-index: -1;
+        }
+
+        .header h1 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 5rem;
+            color: #ff0000;
+            text-transform: uppercase;
+            letter-spacing: 20px;
+            text-shadow:
+                0 0 10px #ff0000,
+                0 0 20px #ff0000,
+                0 0 40px #ff0000,
+                0 0 80px #8b0000,
+                4px 4px 0 #000;
+            animation: flicker 3s infinite;
+            background: #0a0a0a;
+            display: inline-block;
+            padding: 0 2rem;
+        }
+
+        @keyframes flicker {
+            0%, 100% { opacity: 1; }
+            92% { opacity: 1; }
+            93% { opacity: 0.8; }
+            94% { opacity: 1; }
+            96% { opacity: 0.9; }
+            97% { opacity: 1; }
+        }
+
+        .header p {
+            font-family: 'Special Elite', cursive;
+            color: #666;
+            font-size: 1.2rem;
+            margin-top: 1rem;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+        }
+
+        .wanted-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2.5rem;
+        }
+
+        .wanted-card {
+            background: linear-gradient(145deg, #1a1a1a 0%, #0d0d0d 100%);
+            border: 1px solid #333;
+            border-radius: 3px;
+            padding: 1.5rem;
+            position: relative;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            overflow: hidden;
+        }
+
+        .wanted-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #8b0000, #ff0000, #8b0000);
+            animation: scanline 2s linear infinite;
+        }
+
+        @keyframes scanline {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .wanted-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,0,0,0.03), transparent);
+            transition: left 0.5s;
+        }
+
+        .wanted-card:hover::after {
+            left: 100%;
+        }
+
+        .wanted-card:hover {
+            transform: scale(1.02);
+            border-color: #ff0000;
+            box-shadow:
+                0 0 30px rgba(255,0,0,0.2),
+                inset 0 0 30px rgba(255,0,0,0.05);
+        }
+
+        .card-header {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.8rem;
+            color: #ff0000;
+            text-align: center;
+            letter-spacing: 10px;
+            margin-bottom: 1rem;
+            text-shadow: 0 0 10px rgba(255,0,0,0.5);
+            border-bottom: 1px solid #333;
+            padding-bottom: 0.5rem;
+        }
+
+        .photo {
+            height: 220px;
+            background: #0a0a0a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #222;
+            margin-bottom: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .photo::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(0,0,0,0.3) 2px,
+                    rgba(0,0,0,0.3) 4px
+                );
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .photo-placeholder {
+            width: 130px;
+            height: 130px;
+            background: linear-gradient(145deg, #1a1a1a, #0a0a0a);
+            border-radius: 50%;
+            position: relative;
+            border: 2px solid #333;
+            box-shadow:
+                0 0 20px rgba(255,0,0,0.1),
+                inset 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        .photo-placeholder::after {
+            content: '?';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 4rem;
+            font-family: 'Bebas Neue', sans-serif;
+            color: #ff0000;
+            text-shadow: 0 0 20px rgba(255,0,0,0.5);
+            animation: pulse-glow 2s infinite;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% {
+                text-shadow: 0 0 20px rgba(255,0,0,0.5);
+                opacity: 1;
+            }
+            50% {
+                text-shadow: 0 0 40px rgba(255,0,0,0.8);
+                opacity: 0.8;
+            }
+        }
+
+        .details {
+            background: rgba(20,20,20,0.8);
+            padding: 1.2rem;
+            border: 1px solid #222;
+        }
+
+        .name {
+            font-family: 'Bebas Neue', sans-serif;
+            color: #fff;
+            font-size: 1.6rem;
+            margin-bottom: 0.8rem;
+            letter-spacing: 3px;
+            border-bottom: 1px solid #ff0000;
+            padding-bottom: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .info {
+            color: #888;
+            margin-bottom: 0.4rem;
+            font-size: 0.95rem;
+            display: flex;
+            justify-content: space-between;
+            padding: 0.3rem 0;
+            border-bottom: 1px solid #1a1a1a;
+            font-family: 'Special Elite', cursive;
+        }
+
+        .info span:first-child {
+            color: #ff0000;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+        }
+
+        .info span:last-child {
+            color: #ccc;
+        }
+
+        .warning {
+            background: linear-gradient(90deg, #8b0000, #ff0000, #8b0000);
+            color: white;
+            padding: 1rem;
+            margin-top: 1rem;
+            text-align: center;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.1rem;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            animation: warning-pulse 1.5s infinite;
+            clip-path: polygon(5% 0, 95% 0, 100% 50%, 95% 100%, 5% 100%, 0 50%);
+        }
+
+        @keyframes warning-pulse {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(255,0,0,0.5);
+                transform: scale(1);
+            }
+            50% {
+                box-shadow: 0 0 40px rgba(255,0,0,0.8);
+                transform: scale(1.01);
+            }
+        }
+
+        .case-number {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-family: 'Special Elite', cursive;
+            font-size: 0.75rem;
+            color: #444;
+            letter-spacing: 2px;
+        }
+
+        .status-light {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            width: 10px;
+            height: 10px;
+            background: #ff0000;
+            border-radius: 50%;
+            animation: blink 1s infinite;
+            box-shadow: 0 0 10px #ff0000;
+        }
+
+        @keyframes blink {
+            0%, 50%, 100% { opacity: 1; }
+            25%, 75% { opacity: 0.3; }
+        }
+
+        /* Corner brackets decoration */
+        .wanted-card .corner {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-color: #ff0000;
+            border-style: solid;
+            opacity: 0.5;
+        }
+
+        .wanted-card .corner.tl {
+            top: 5px;
+            left: 5px;
+            border-width: 2px 0 0 2px;
+        }
+
+        .wanted-card .corner.tr {
+            top: 5px;
+            right: 5px;
+            border-width: 2px 2px 0 0;
+        }
+
+        .wanted-card .corner.bl {
+            bottom: 5px;
+            left: 5px;
+            border-width: 0 0 2px 2px;
+        }
+
+        .wanted-card .corner.br {
+            bottom: 5px;
+            right: 5px;
+            border-width: 0 2px 2px 0;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+
+            .header h1 {
+                font-size: 3rem;
+                letter-spacing: 10px;
+            }
+
+            .wanted-grid {
+                gap: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="board">
+        <header class="header">
+            <h1>MOST WANTED</h1>
+            <p>FEDERAL WANTED LIST - EXTREMELY DANGEROUS</p>
+        </header>
+
+        <div class="wanted-grid">
+            <div class="wanted-card">
+                <div class="corner tl"></div>
+                <div class="corner tr"></div>
+                <div class="corner bl"></div>
+                <div class="corner br"></div>
+                <div class="status-light"></div>
+                <div class="case-number">CASE #MW-2024-001</div>
+                <div class="card-header">WANTED</div>
+                <div class="photo">
+                    <div class="photo-placeholder"></div>
+                </div>
+                <div class="details">
+                    <h2 class="name">Marcus "Ghost" Thompson</h2>
+                    <div class="info">
+                        <span>Age:</span>
+                        <span>34</span>
+                    </div>
+                    <div class="info">
+                        <span>Height:</span>
+                        <span>188 cm</span>
+                    </div>
+                    <div class="info">
+                        <span>Last Seen:</span>
+                        <span>Chicago</span>
+                    </div>
+                    <div class="info">
+                        <span>Charges:</span>
+                        <span>Cybercrime</span>
+                    </div>
+                    <div class="warning">ARMED AND DANGEROUS</div>
+                </div>
+            </div>
+
+            <div class="wanted-card">
+                <div class="corner tl"></div>
+                <div class="corner tr"></div>
+                <div class="corner bl"></div>
+                <div class="corner br"></div>
+                <div class="status-light"></div>
+                <div class="case-number">CASE #MW-2024-002</div>
+                <div class="card-header">WANTED</div>
+                <div class="photo">
+                    <div class="photo-placeholder"></div>
+                </div>
+                <div class="details">
+                    <h2 class="name">Elena Kovacs</h2>
+                    <div class="info">
+                        <span>Age:</span>
+                        <span>29</span>
+                    </div>
+                    <div class="info">
+                        <span>Height:</span>
+                        <span>173 cm</span>
+                    </div>
+                    <div class="info">
+                        <span>Last Seen:</span>
+                        <span>Miami</span>
+                    </div>
+                    <div class="info">
+                        <span>Charges:</span>
+                        <span>Fraud</span>
+                    </div>
+                    <div class="warning">EXTREMELY DANGEROUS</div>
+                </div>
+            </div>
+
+            <div class="wanted-card">
+                <div class="corner tl"></div>
+                <div class="corner tr"></div>
+                <div class="corner bl"></div>
+                <div class="corner br"></div>
+                <div class="status-light"></div>
+                <div class="case-number">CASE #MW-2024-003</div>
+                <div class="card-header">WANTED</div>
+                <div class="photo">
+                    <div class="photo-placeholder"></div>
+                </div>
+                <div class="details">
+                    <h2 class="name">Raymond "Ice" Chen</h2>
+                    <div class="info">
+                        <span>Age:</span>
+                        <span>41</span>
+                    </div>
+                    <div class="info">
+                        <span>Height:</span>
+                        <span>180 cm</span>
+                    </div>
+                    <div class="info">
+                        <span>Last Seen:</span>
+                        <span>Seattle</span>
+                    </div>
+                    <div class="info">
+                        <span>Charges:</span>
+                        <span>Money Laundering</span>
+                    </div>
+                    <div class="warning">USE CAUTION</div>
+                </div>
+            </div>
+
+            <div class="wanted-card">
+                <div class="corner tl"></div>
+                <div class="corner tr"></div>
+                <div class="corner bl"></div>
+                <div class="corner br"></div>
+                <div class="status-light"></div>
+                <div class="case-number">CASE #MW-2024-004</div>
+                <div class="card-header">WANTED</div>
+                <div class="photo">
+                    <div class="photo-placeholder"></div>
+                </div>
+                <div class="details">
+                    <h2 class="name">Sara "Viper" Martinez</h2>
+                    <div class="info">
+                        <span>Age:</span>
+                        <span>31</span>
+                    </div>
+                    <div class="info">
+                        <span>Height:</span>
+                        <span>168 cm</span>
+                    </div>
+                    <div class="info">
+                        <span>Last Seen:</span>
+                        <span>Los Angeles</span>
+                    </div>
+                    <div class="info">
+                        <span>Charges:</span>
+                        <span>Extortion</span>
+                    </div>
+                    <div class="warning">ARMED AND DANGEROUS</div>
+                </div>
+            </div>
+
+            <div class="wanted-card">
+                <div class="corner tl"></div>
+                <div class="corner tr"></div>
+                <div class="corner bl"></div>
+                <div class="corner br"></div>
+                <div class="status-light"></div>
+                <div class="case-number">CASE #MW-2024-005</div>
+                <div class="card-header">WANTED</div>
+                <div class="photo">
+                    <div class="photo-placeholder"></div>
+                </div>
+                <div class="details">
+                    <h2 class="name">Victor Petrov</h2>
+                    <div class="info">
+                        <span>Age:</span>
+                        <span>45</span>
+                    </div>
+                    <div class="info">
+                        <span>Height:</span>
+                        <span>183 cm</span>
+                    </div>
+                    <div class="info">
+                        <span>Last Seen:</span>
+                        <span>New York</span>
+                    </div>
+                    <div class="info">
+                        <span>Charges:</span>
+                        <span>Racketeering</span>
+                    </div>
+                    <div class="warning">EXTREMELY DANGEROUS</div>
+                </div>
+            </div>
+
+            <div class="wanted-card">
+                <div class="corner tl"></div>
+                <div class="corner tr"></div>
+                <div class="corner bl"></div>
+                <div class="corner br"></div>
+                <div class="status-light"></div>
+                <div class="case-number">CASE #MW-2024-006</div>
+                <div class="card-header">WANTED</div>
+                <div class="photo">
+                    <div class="photo-placeholder"></div>
+                </div>
+                <div class="details">
+                    <h2 class="name">Isabella Romano</h2>
+                    <div class="info">
+                        <span>Age:</span>
+                        <span>36</span>
+                    </div>
+                    <div class="info">
+                        <span>Height:</span>
+                        <span>170 cm</span>
+                    </div>
+                    <div class="info">
+                        <span>Last Seen:</span>
+                        <span>Boston</span>
+                    </div>
+                    <div class="info">
+                        <span>Charges:</span>
+                        <span>Securities Fraud</span>
+                    </div>
+                    <div class="warning">USE CAUTION</div>
+                </div>
+            </div>
+
+            <div class="wanted-card">
+                <div class="corner tl"></div>
+                <div class="corner tr"></div>
+                <div class="corner bl"></div>
+                <div class="corner br"></div>
+                <div class="status-light"></div>
+                <div class="case-number">CASE #MW-2024-007</div>
+                <div class="card-header">WANTED</div>
+                <div class="photo">
+                    <div class="photo-placeholder"></div>
+                </div>
+                <div class="details">
+                    <h2 class="name">James "Shadow" Wilson</h2>
+                    <div class="info">
+                        <span>Age:</span>
+                        <span>38</span>
+                    </div>
+                    <div class="info">
+                        <span>Height:</span>
+                        <span>185 cm</span>
+                    </div>
+                    <div class="info">
+                        <span>Last Seen:</span>
+                        <span>Dallas</span>
+                    </div>
+                    <div class="info">
+                        <span>Charges:</span>
+                        <span>Cyberterrorism</span>
+                    </div>
+                    <div class="warning">ARMED AND DANGEROUS</div>
+                </div>
+            </div>
+
+            <div class="wanted-card">
+                <div class="corner tl"></div>
+                <div class="corner tr"></div>
+                <div class="corner bl"></div>
+                <div class="corner br"></div>
+                <div class="status-light"></div>
+                <div class="case-number">CASE #MW-2024-008</div>
+                <div class="card-header">WANTED</div>
+                <div class="photo">
+                    <div class="photo-placeholder"></div>
+                </div>
+                <div class="details">
+                    <h2 class="name">Nina Volkova</h2>
+                    <div class="info">
+                        <span>Age:</span>
+                        <span>33</span>
+                    </div>
+                    <div class="info">
+                        <span>Height:</span>
+                        <span>175 cm</span>
+                    </div>
+                    <div class="info">
+                        <span>Last Seen:</span>
+                        <span>San Francisco</span>
+                    </div>
+                    <div class="info">
+                        <span>Charges:</span>
+                        <span>Corporate Espionage</span>
+                    </div>
+                    <div class="warning">EXTREMELY DANGEROUS</div>
+                </div>
+            </div>
+
+            <div class="wanted-card">
+                <div class="corner tl"></div>
+                <div class="corner tr"></div>
+                <div class="corner bl"></div>
+                <div class="corner br"></div>
+                <div class="status-light"></div>
+                <div class="case-number">CASE #MW-2024-009</div>
+                <div class="card-header">WANTED</div>
+                <div class="photo">
+                    <div class="photo-placeholder"></div>
+                </div>
+                <div class="details">
+                    <h2 class="name">Carlos "Phantom" Rivera</h2>
+                    <div class="info">
+                        <span>Age:</span>
+                        <span>39</span>
+                    </div>
+                    <div class="info">
+                        <span>Height:</span>
+                        <span>178 cm</span>
+                    </div>
+                    <div class="info">
+                        <span>Last Seen:</span>
+                        <span>Houston</span>
+                    </div>
+                    <div class="info">
+                        <span>Charges:</span>
+                        <span>Wire Fraud</span>
+                    </div>
+                    <div class="warning">USE CAUTION</div>
+                </div>
+            </div>
+
+            <div class="wanted-card">
+                <div class="corner tl"></div>
+                <div class="corner tr"></div>
+                <div class="corner bl"></div>
+                <div class="corner br"></div>
+                <div class="status-light"></div>
+                <div class="case-number">CASE #MW-2024-010</div>
+                <div class="card-header">WANTED</div>
+                <div class="photo">
+                    <div class="photo-placeholder"></div>
+                </div>
+                <div class="details">
+                    <h2 class="name">Mei Lin</h2>
+                    <div class="info">
+                        <span>Age:</span>
+                        <span>32</span>
+                    </div>
+                    <div class="info">
+                        <span>Height:</span>
+                        <span>165 cm</span>
+                    </div>
+                    <div class="info">
+                        <span>Last Seen:</span>
+                        <span>Portland</span>
+                    </div>
+                    <div class="info">
+                        <span>Charges:</span>
+                        <span>Data Theft</span>
+                    </div>
+                    <div class="warning">ARMED AND DANGEROUS</div>
+                </div>
+            </div>
+
+            <div class="wanted-card">
+                <div class="corner tl"></div>
+                <div class="corner tr"></div>
+                <div class="corner bl"></div>
+                <div class="corner br"></div>
+                <div class="status-light"></div>
+                <div class="case-number">CASE #MW-2024-011</div>
+                <div class="card-header">WANTED</div>
+                <div class="photo">
+                    <div class="photo-placeholder"></div>
+                </div>
+                <div class="details">
+                    <h2 class="name">Alexander "Wolf" Kozlov</h2>
+                    <div class="info">
+                        <span>Age:</span>
+                        <span>43</span>
+                    </div>
+                    <div class="info">
+                        <span>Height:</span>
+                        <span>190 cm</span>
+                    </div>
+                    <div class="info">
+                        <span>Last Seen:</span>
+                        <span>Denver</span>
+                    </div>
+                    <div class="info">
+                        <span>Charges:</span>
+                        <span>Money Laundering</span>
+                    </div>
+                    <div class="warning">EXTREMELY DANGEROUS</div>
+                </div>
+            </div>
+
+            <div class="wanted-card">
+                <div class="corner tl"></div>
+                <div class="corner tr"></div>
+                <div class="corner bl"></div>
+                <div class="corner br"></div>
+                <div class="status-light"></div>
+                <div class="case-number">CASE #MW-2024-012</div>
+                <div class="card-header">WANTED</div>
+                <div class="photo">
+                    <div class="photo-placeholder"></div>
+                </div>
+                <div class="details">
+                    <h2 class="name">Maria Santos</h2>
+                    <div class="info">
+                        <span>Age:</span>
+                        <span>35</span>
+                    </div>
+                    <div class="info">
+                        <span>Height:</span>
+                        <span>170 cm</span>
+                    </div>
+                    <div class="info">
+                        <span>Last Seen:</span>
+                        <span>Phoenix</span>
+                    </div>
+                    <div class="info">
+                        <span>Charges:</span>
+                        <span>Bank Fraud</span>
+                    </div>
+                    <div class="warning">USE CAUTION</div>
+                </div>
+            </div>
+
+            <div class="wanted-card">
+                <div class="corner tl"></div>
+                <div class="corner tr"></div>
+                <div class="corner bl"></div>
+                <div class="corner br"></div>
+                <div class="status-light"></div>
+                <div class="case-number">CASE #MW-2024-013</div>
+                <div class="card-header">WANTED</div>
+                <div class="photo">
+                    <div class="photo-placeholder"></div>
+                </div>
+                <div class="details">
+                    <h2 class="name">David "Spectre" Chang</h2>
+                    <div class="info">
+                        <span>Age:</span>
+                        <span>37</span>
+                    </div>
+                    <div class="info">
+                        <span>Height:</span>
+                        <span>180 cm</span>
+                    </div>
+                    <div class="info">
+                        <span>Last Seen:</span>
+                        <span>Atlanta</span>
+                    </div>
+                    <div class="info">
+                        <span>Charges:</span>
+                        <span>Crypto Fraud</span>
+                    </div>
+                    <div class="warning">ARMED AND DANGEROUS</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
